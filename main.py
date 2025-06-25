@@ -1,11 +1,13 @@
 import argparse
 from dotenv import load_dotenv
+from rag_url.embed import ChunkEmbedder
 from rag_url.chunk import MarkdownChunker
 from rag_url.scrape import BaseUrlScraper
 
 # example
 # python main.py scrape ./data/pydantic_ai https://ai.pydantic.dev/ --exclude /api /img /llms.txt /llms-full.txt
 # python main.py chunk ./data/pydantic_ai
+# python main.py embed ./data/pydantic_ai/_lancedb "./data/pydantic_ai/*.json"
 
 load_dotenv()
 
@@ -36,6 +38,19 @@ def main():
         "--delay", type=float, default=1.0, help="Delay between requests (in seconds)"
     )
 
+    # Embed command
+    embed_parser = subparsers.add_parser("embed", help="embed json chunk files")
+    embed_parser.add_argument("dbfile", type=str, help="The persisent db file")
+    embed_parser.add_argument(
+        "pattern", type=str, help="The glob pattern to collect json chunk files"
+    )
+    embed_parser.add_argument(
+        "--collection",
+        type=str,
+        default="collection",
+        help="Collection storing the embeddings in the db",
+    )
+
     # parse and execute the command.
     args = parser.parse_args()
 
@@ -43,6 +58,8 @@ def main():
         BaseUrlScraper(args.workdir, args.url, args.delay, args.exclude).run()
     elif args.command == "chunk":
         MarkdownChunker(args.workdir, args.delay).run()
+    elif args.command == "embed":
+        ChunkEmbedder(args.dbfile, args.pattern, args.collection).run()
     else:
         raise Exception("Unexpected input")
 
