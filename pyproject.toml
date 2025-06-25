@@ -4,4 +4,10 @@ version = "0.1.0"
 description = "Add your description here"
 readme = "README.md"
 requires-python = ">=3.11"
-dependencies = []
+dependencies = [
+    "beautifulsoup4>=4.13.4",
+    "requests>=2.32.4",
+    "trafilatura>=2.0.0",
+]
+[tool.setuptools.packages.find]
+include = ["rag_url"]
