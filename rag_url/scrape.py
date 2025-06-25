@@ -130,6 +130,6 @@ class BaseUrlScraper:
                     f.write(markdown)
 
             except Exception as e:
-                print(f"[ERROR] error collecting url {current_url}: {e}")
+                print(f"[ERROR] error scraping url {current_url}: {e}")
 
             time.sleep(delay)

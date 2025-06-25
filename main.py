@@ -1,8 +1,12 @@
 import argparse
-from rag_url.scraper import BaseUrlScraper
+from dotenv import load_dotenv
+from rag_url.chunk import MarkdownChunker
+from rag_url.scrape import BaseUrlScraper
 
 # example
-# python main.py scrape https://ai.pydantic.dev/ ./data/pydantic_ai/pages --exclude "/api", "/img", "/llms.txt", "/llms-full.txt"
+# python main.py scrape https://ai.pydantic.dev/ ./data/pydantic_ai/pages --exclude /api /img /llms.txt /llms-full.txt
+
+load_dotenv()
 
 
 def main():
