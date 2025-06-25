@@ -7,7 +7,7 @@ from rag_url.scrape import BaseUrlScraper
 # example
 # python main.py scrape ./data/pydantic_ai https://ai.pydantic.dev/ --exclude /api /img /llms.txt /llms-full.txt
 # python main.py chunk ./data/pydantic_ai
-# python main.py embed ./data/pydantic_ai/_lancedb "./data/pydantic_ai/*.json"
+# python main.py embed ./data/_lancedb "./data/pydantic_ai/*.json" --collection pydantic_ai
 
 load_dotenv()
 

@@ -1,12 +1,12 @@
 def CHUNKING_SYSTEM_PROMP(CHUNK_SEPARATOR: str, STOP_SEQUENCE: str):
     return f"""
-# RAG Documentation Chunking System Prompt
+# RAG Chunking System Prompt
 
 ## Role
-You are an expert at chunking technical documentation for RAG systems.
+You are an expert at chunking a knowledge base for RAG systems.
 
 ## Task
-Split this Pydantic documentation page into semantic chunks that are perfect for retrieval.
+Split this knowledge base page into semantic chunks that are perfect for retrieval.
 
 ## Core Requirements
 - Create **contentful chunks** for knowledge base storage in a RAG pipeline
