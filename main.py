@@ -47,7 +47,7 @@ def main():
     embed_parser.add_argument(
         "--collection",
         type=str,
-        default="collection",
+        required=True,
         help="Collection storing the embeddings in the db",
     )
 
