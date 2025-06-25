@@ -3,22 +3,23 @@ import time
 import json
 import frontmatter
 from pathlib import Path
+from typing import TypedDict
 from google import genai
 from google.genai import types
-from pydantic import BaseModel
 from rag_url.prompts import CHUNKING_SYSTEM_PROMP, CHUNKING_PROMPT_TEMPLATE
 
 
-class Chunk(BaseModel):
+class Chunk(TypedDict):
     title: str
     content: str
-    keywords: list[str]
 
 
 class MarkdownChunker:
     def __init__(self, workdir: str, delay: float = 1.0):
         self.workpath = Path(workdir)
         self.delay = delay
+        self.stop_sequence = "<STOP_RAG_CHUNKS>"
+        self.chunk_separator = "<SEPARATOR_RAG_CHUNK>"
 
     def _to_chunks(self, content: str) -> list[Chunk]:
         GEMINI_API_KEY = os.getenv("GEMINI_API_KEY")
@@ -33,13 +34,71 @@ class MarkdownChunker:
             model=GEMINI_MODEL_NAME,
             contents=CHUNKING_PROMPT_TEMPLATE(content),
             config=types.GenerateContentConfig(
-                system_instruction=CHUNKING_SYSTEM_PROMP,
-                response_mime_type="application/json",
-                response_schema=list[Chunk],
+                system_instruction=CHUNKING_SYSTEM_PROMP(
+                    self.chunk_separator, self.stop_sequence
+                ),
+                stop_sequences=[self.stop_sequence],
             ),
         )
 
-        return json.loads(response.text or "[]")
+        if not response.text:
+            raise Exception("No response produced")
+
+        chunks = self._response_to_chunks(response.text)
+
+        if not chunks:
+            raise Exception("No chunk produced")
+
+        return chunks
+
+    def _response_to_chunks(self, markdown: str) -> list[Chunk]:
+        # Remove everything before the first #
+        first_hash = markdown.find("#")
+        if first_hash != -1:
+            markdown = markdown[first_hash:]
+
+        # Remove END_CHUNKS and everything after it
+        end_marker = markdown.find(self.stop_sequence)
+        if end_marker != -1:
+            markdown = markdown[:end_marker]
+
+        # Split by {self.chunk_separator} separator
+        chunks = markdown.split(self.chunk_separator)
+
+        # collect the results.
+        results = []
+
+        for chunk in chunks:
+            chunk = chunk.strip()
+            if not chunk:
+                continue
+
+            # Extract title (first line starting with #)
+            lines = chunk.split("\n")
+            title_line = next(
+                (line for line in lines if line.strip().startswith("#")), None
+            )
+
+            if not title_line:
+                continue
+
+            # Extract title (remove # and strip)
+            title = title_line.strip().lstrip("#").strip()
+
+            # Extract content (everything after the title line)
+            title_index = lines.index(title_line)
+            content_lines = lines[title_index + 1 :]
+
+            # Remove empty lines at the beginning
+            while content_lines and not content_lines[0].strip():
+                content_lines.pop(0)
+
+            content = "\n".join(content_lines).strip()
+
+            if title and content:
+                results.append(Chunk(title=title, content=content))
+
+        return results
 
     def chunk_file(self, infile: str) -> None:
         # do nothing if target file exists.
