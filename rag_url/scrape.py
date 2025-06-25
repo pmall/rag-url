@@ -9,8 +9,16 @@ from urllib.parse import urlparse, urljoin
 
 
 class BaseUrlScraper:
-    def __init__(self, base_url: str, excluded_paths: list[str] | None = None):
+    def __init__(
+        self,
+        base_url: str,
+        outdir: str,
+        delay: float = 0.1,
+        excluded_paths: list[str] | None = None,
+    ):
         self.base_url = base_url.rstrip("/")
+        self.outdir = outdir
+        self.delay = delay
         self.excluded_paths = [url.rstrip("/") for url in excluded_paths or []]
 
     def _is_valid_url(self, url: str) -> bool:
@@ -77,9 +85,9 @@ class BaseUrlScraper:
             if file.is_file():
                 file.unlink()
 
-    def run(self, outdir: str, delay: float = 0.1) -> None:
+    def run(self) -> None:
         found_urls = set()
-        outpath = Path(outdir)
+        outpath = Path(self.outdir)
         queue = [self.base_url]
 
         session = requests.Session()
@@ -132,4 +140,4 @@ class BaseUrlScraper:
             except Exception as e:
                 print(f"[ERROR] error scraping url {current_url}: {e}")
 
-            time.sleep(delay)
+            time.sleep(self.delay)
