@@ -11,13 +11,13 @@ from urllib.parse import urlparse, urljoin
 class BaseUrlScraper:
     def __init__(
         self,
+        workdir: str,
         base_url: str,
-        outdir: str,
         delay: float = 0.1,
         excluded_paths: list[str] | None = None,
     ):
         self.base_url = base_url.rstrip("/")
-        self.outdir = outdir
+        self.workdir = workdir
         self.delay = delay
         self.excluded_paths = [url.rstrip("/") for url in excluded_paths or []]
 
@@ -80,23 +80,23 @@ class BaseUrlScraper:
 
         return "\n".join(["---", f"url: {url}", "---", "", markdown])
 
-    def _empty_outdir(self, outpath: Path):
-        for file in outpath.iterdir():
+    def _empty_workdir(self, workpath: Path):
+        for file in workpath.iterdir():
             if file.is_file():
                 file.unlink()
 
     def run(self) -> None:
         found_urls = set()
-        outpath = Path(self.outdir)
+        workpath = Path(self.workdir)
         queue = [self.base_url]
 
         session = requests.Session()
         session.headers.update({"User-Agent": "rag-url/1.0"})
 
-        if not outpath.exists():
-            raise Exception(f"Outdir {outpath} does not exist")
+        if not workpath.exists():
+            raise Exception(f"Workdir {workpath} does not exist")
 
-        self._empty_outdir(outpath)
+        self._empty_workdir(workpath)
 
         while queue:
             current_url = queue.pop().rstrip("/")
@@ -134,7 +134,7 @@ class BaseUrlScraper:
                 filename = self._url_to_filename(current_url)
 
                 # finally write the file.
-                with open(outpath / filename, "w", encoding="utf-8") as f:
+                with open(workpath / filename, "w", encoding="utf-8") as f:
                     f.write(markdown)
 
             except Exception as e:

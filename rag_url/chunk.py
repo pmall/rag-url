@@ -16,9 +16,8 @@ class Chunk(BaseModel):
 
 
 class MarkdownChunker:
-    def __init__(self, indir: str, outdir: str, delay: float = 1.0):
-        self.inpath = Path(indir)
-        self.outpath = Path(outdir)
+    def __init__(self, workdir: str, delay: float = 1.0):
+        self.workpath = Path(workdir)
         self.delay = delay
 
     def _to_chunks(self, content: str) -> list[Chunk]:
@@ -44,7 +43,7 @@ class MarkdownChunker:
 
     def chunk_file(self, infile: str) -> None:
         # do nothing if target file exists.
-        outfilepath = self.outpath / f"{Path(infile).stem}.json"
+        outfilepath = self.workpath / f"{Path(infile).stem}.json"
 
         if outfilepath.exists():
             return
@@ -68,9 +67,11 @@ class MarkdownChunker:
         with open(outfilepath, "w", encoding="utf-8") as f:
             f.write(json.dumps(wrapped, indent=2))
 
+        print(f"[INFO] {infile} chunked in {outfilepath}")
+
     def run(self) -> tuple[int, int]:
         # loop over all souce file and produce chunk files.
-        source_files = list(self.inpath.glob("*.md"))
+        source_files = list(self.workpath.glob("*.md"))
 
         for infilepath in source_files:
             try:
@@ -82,7 +83,7 @@ class MarkdownChunker:
             time.sleep(self.delay)
 
         # count the produced files (some LLM calls may have failed).
-        target_files = list(self.outpath.glob("*.json"))
+        target_files = list(self.workpath.glob("*.json"))
 
         # return number of source files vs number of target file produced.
         # Orchetstrator might loop until completed.
