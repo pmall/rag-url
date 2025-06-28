@@ -1,5 +1,6 @@
 import argparse
 from dotenv import load_dotenv
+from rag_url.agent import RagAgent
 from rag_url.embed import ChunkEmbedder
 from rag_url.chunk import MarkdownChunker
 from rag_url.scrape import BaseUrlScraper
@@ -51,6 +52,16 @@ def main():
         help="Collection storing the embeddings in the db",
     )
 
+    # Agent command
+    agent_parser = subparsers.add_parser("agent", help="Run the RAG agent")
+    agent_parser.add_argument("dbfile", type=str, help="The persistent db file")
+    agent_parser.add_argument(
+        "--collection",
+        type=str,
+        required=True,
+        help="Collection storing the embeddings in the db",
+    )
+
     # parse and execute the command.
     args = parser.parse_args()
 
@@ -60,6 +71,8 @@ def main():
         MarkdownChunker(args.workdir, args.delay).run()
     elif args.command == "embed":
         ChunkEmbedder(args.dbfile, args.pattern, args.collection).run()
+    elif args.command == "agent":
+        RagAgent(args.dbfile, args.collection).run()
     else:
         raise Exception("Unexpected input")
 
