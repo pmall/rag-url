@@ -1,9 +1,10 @@
 import os
 import time
 import json
+import re
 import frontmatter
 from pathlib import Path
-from typing import TypedDict
+from typing import TypedDict, Optional
 from google import genai
 from google.genai import types
 from rag_url.prompts import CHUNKING_SYSTEM_PROMP, CHUNKING_PROMPT_TEMPLATE
@@ -12,6 +13,7 @@ from rag_url.prompts import CHUNKING_SYSTEM_PROMP, CHUNKING_PROMPT_TEMPLATE
 class Chunk(TypedDict):
     title: str
     content: str
+    code: Optional[str]
 
 
 class MarkdownChunker:
@@ -52,51 +54,46 @@ class MarkdownChunker:
         return chunks
 
     def _response_to_chunks(self, markdown: str) -> list[Chunk]:
-        # Remove everything before the first #
+        # Clean up the response
         first_hash = markdown.find("#")
         if first_hash != -1:
             markdown = markdown[first_hash:]
-
-        # Remove END_CHUNKS and everything after it
         end_marker = markdown.find(self.stop_sequence)
         if end_marker != -1:
             markdown = markdown[:end_marker]
 
-        # Split by {self.chunk_separator} separator
+        # Split into chunks
         chunks = markdown.split(self.chunk_separator)
-
-        # collect the results.
         results = []
 
-        for chunk in chunks:
-            chunk = chunk.strip()
-            if not chunk:
+        for i, chunk_str in enumerate(chunks):
+            chunk_str = chunk_str.strip()
+            if not chunk_str:
                 continue
 
-            # Extract title (first line starting with #)
-            lines = chunk.split("\n")
-            title_line = next(
-                (line for line in lines if line.strip().startswith("#")), None
-            )
-
-            if not title_line:
+            lines = chunk_str.split('\n')
+            
+            # Stricter title parsing
+            title_line = lines[0].strip()
+            if not title_line.startswith('#') or title_line.startswith('```'):
+                print(f"[ERROR] Chunk {i+1} has a malformed title. Skipping.")
                 continue
 
-            # Extract title (remove # and strip)
-            title = title_line.strip().lstrip("#").strip()
-
-            # Extract content (everything after the title line)
-            title_index = lines.index(title_line)
-            content_lines = lines[title_index + 1 :]
-
-            # Remove empty lines at the beginning
-            while content_lines and not content_lines[0].strip():
-                content_lines.pop(0)
-
-            content = "\n".join(content_lines).strip()
+            title = title_line.lstrip('#').strip()
+            
+            content_lines = lines[1:]
+            content = '\n'.join(content_lines).strip()
+            
+            # Extract code block
+            code_block_match = re.search(r"\n```(.*?)```$", content, re.DOTALL)
+            code = None
+            if code_block_match:
+                code = code_block_match.group(1).strip()
+                # Remove the code block from the content
+                content = content[:code_block_match.start()].strip()
 
             if title and content:
-                results.append(Chunk(title=title, content=content))
+                results.append(Chunk(title=title, content=content, code=code))
 
         return results
 
